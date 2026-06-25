@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0b141a" />
+  <title>HomeChat</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
+</head>
+<body>
+  <!-- Login / Register -->
+  <div id="auth" class="auth hidden">
+    <form id="auth-form" class="auth-card">
+      <div class="auth-logo">💬</div>
+      <h1>HomeChat</h1>
+      <p class="auth-sub" id="auth-sub">Sign in to chat with the household</p>
+      <input id="username" placeholder="Username" autocomplete="username" maxlength="32" required />
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit" id="auth-btn">Sign in</button>
+      <p class="auth-error" id="auth-error"></p>
+      <p class="auth-toggle">
+        <span id="toggle-text">New here?</span>
+        <a href="#" id="toggle-link">Create an account</a>
+      </p>
+    </form>
+  </div>
+
+  <!-- Chat -->
+  <div id="chat" class="chat hidden">
+    <header class="chat-header">
+      <div class="chat-title">
+        <span class="chat-logo">💬</span>
+        <div>
+          <div class="chat-name">HomeChat</div>
+          <div class="chat-presence" id="presence">connecting…</div>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <span class="me" id="me-name"></span>
+        <button id="my-status" class="status-pill" title="Toggle your status (Available / Away)">
+          <span class="dot online" id="my-dot"></span><span id="my-status-text">Available</span>
+        </button>
+        <div class="settings-wrap">
+          <button id="notif-btn" class="ghost-btn" title="Notification settings">🔔</button>
+          <div id="notif-menu" class="popover hidden">
+            <div class="popover-title">Notifications</div>
+            <label class="toggle">
+              <input type="checkbox" id="opt-sound" />
+              <span>Play a sound on new messages</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="opt-desktop" />
+              <span>Desktop pop-up notifications</span>
+            </label>
+            <div class="popover-note" id="notif-note"></div>
+            <button id="notif-test" class="ghost-btn" style="margin-top:8px">Test sound</button>
+          </div>
+        </div>
+        <button id="popout" class="ghost-btn" title="Open in its own window">⧉ Pop out</button>
+        <button id="logout" title="Sign out">Sign out</button>
+      </div>
+    </header>
+
+    <main id="messages" class="messages"></main>
+
+    <div id="drop-hint" class="drop-hint hidden">Drop file to send</div>
+
+    <div id="staged" class="staged hidden"></div>
+
+    <footer class="composer">
+      <button id="attach-btn" class="icon-btn" title="Attach a file">📎</button>
+      <input id="file-input" type="file" multiple hidden />
+      <textarea id="input" rows="1" placeholder="Type a message — or paste a screenshot (Ctrl/Cmd+V)"></textarea>
+      <button id="send-btn" class="icon-btn send" title="Send">➤</button>
+    </footer>
+  </div>
+
+  <!-- Lightbox for image preview -->
+  <div id="lightbox" class="lightbox hidden"><img id="lightbox-img" alt="" /></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

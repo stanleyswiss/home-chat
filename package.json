@@ -1,0 +1,31 @@
+{
+  "name": "home-chat",
+  "version": "1.0.0",
+  "description": "Self-hosted LAN-only family chat in the browser — real-time, paste images & PDFs, read receipts, presence, notifications. One tiny Node server, almost no dependencies.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "chat",
+    "lan",
+    "self-hosted",
+    "websocket",
+    "family",
+    "messaging",
+    "realtime"
+  ],
+  "license": "MIT",
+  "author": "stanleyswiss",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stanleyswiss/home-chat.git"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
+}
