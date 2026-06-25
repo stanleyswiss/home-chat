@@ -153,6 +153,7 @@ function showChat() {
   if (isPopup) $('popout').classList.add('hidden');
   wireNotifUI();
   renderNotifUI();
+  buildPicker();
   // Unlock audio on the first user gesture (autoplay policy).
   window.addEventListener('pointerdown', initAudio, { once: true });
   window.addEventListener('keydown', initAudio, { once: true });
@@ -217,6 +218,8 @@ function connectWS() {
       marks = data.marks || {};
       updateReceipts();
       renderPresence();
+    } else if (data.type === 'reactions') {
+      renderReactions(data.messageId, data.reactions);
     }
   };
   ws.onclose = () => {
@@ -337,6 +340,60 @@ function maybeAck() {
 
 function isActive() { return document.visibilityState === 'visible' && document.hasFocus(); }
 
+// ---------- Reactions ----------
+
+const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+let pickerTarget = null;
+
+function buildPicker() {
+  const p = $('react-picker');
+  p.innerHTML = REACTIONS.map((e) => `<button class="rp-emoji" data-emoji="${e}">${e}</button>`).join('');
+  p.querySelectorAll('.rp-emoji').forEach((b) =>
+    b.addEventListener('click', () => {
+      if (pickerTarget != null) sendReact(pickerTarget, b.dataset.emoji);
+      hidePicker();
+    }));
+}
+
+function openPicker(btn, mid) {
+  pickerTarget = mid;
+  const p = $('react-picker');
+  p.classList.remove('hidden');
+  const r = btn.getBoundingClientRect();
+  const pw = p.offsetWidth || 230, ph = p.offsetHeight || 44;
+  let left = Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, window.innerWidth - pw - 8));
+  let top = r.top - ph - 8;
+  if (top < 8) top = r.bottom + 8; // flip below if no room above
+  p.style.left = left + 'px';
+  p.style.top = top + 'px';
+}
+
+function hidePicker() { $('react-picker').classList.add('hidden'); pickerTarget = null; }
+
+function sendReact(mid, emoji) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'react', messageId: mid, emoji }));
+}
+
+function renderReactions(mid, reactions) {
+  const rec = msgIndex.get(mid);
+  if (!rec || !rec.reactsEl) return;
+  const el = rec.reactsEl;
+  if (!reactions || reactions.length === 0) { el.innerHTML = ''; el.classList.remove('has'); return; }
+  el.classList.add('has');
+  el.innerHTML = reactions.map((r) => {
+    const mine = r.users.includes(me);
+    return `<button class="chip${mine ? ' mine' : ''}" data-mid="${mid}" data-emoji="${r.emoji}"
+      title="${escapeHtml(r.users.join(', '))}">${r.emoji}<span class="cnt">${r.users.length}</span></button>`;
+  }).join('');
+}
+
+// Close the picker on outside click or Escape.
+document.addEventListener('click', (e) => {
+  const p = $('react-picker');
+  if (!p.classList.contains('hidden') && !p.contains(e.target) && !e.target.closest('.react-btn')) hidePicker();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hidePicker(); });
+
 // ---------- Messages ----------
 
 const messagesEl = $('messages');
@@ -411,16 +468,20 @@ function addMessage(m, animate) {
   row.className = 'row ' + (out ? 'out' : 'in');
   const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   row.innerHTML = `<div class="bubble">
+    <button class="react-btn" data-mid="${m.id}" title="Add a reaction" aria-label="Add a reaction">🙂</button>
     ${out ? '' : `<div class="sender">${escapeHtml(m.username)}</div>`}
     ${m.attachment ? attachmentHtml(m.attachment) : ''}
     ${m.body ? `<div class="text">${linkify(m.body)}</div>` : ''}
     <div class="time">${time}${out ? ' <span class="ticks">✓</span>' : ''}</div>
+    <div class="reactions" data-mid="${m.id}"></div>
   </div>`;
   messagesEl.appendChild(row);
 
   const ticksEl = out ? row.querySelector('.ticks') : null;
-  msgIndex.set(m.id, { ticksEl });
+  const reactsEl = row.querySelector('.reactions');
+  msgIndex.set(m.id, { ticksEl, reactsEl });
   if (ticksEl) renderTicks(ticksEl, receiptStatus(m.id));
+  renderReactions(m.id, m.reactions || []);
 
   if (animate) scrollToBottom();
 }
@@ -542,7 +603,11 @@ window.addEventListener('drop', (e) => {
 // Lightbox
 messagesEl.addEventListener('click', (e) => {
   const img = e.target.closest('img[data-zoom]');
-  if (img) { $('lightbox-img').src = img.dataset.zoom; $('lightbox').classList.remove('hidden'); }
+  if (img) { $('lightbox-img').src = img.dataset.zoom; $('lightbox').classList.remove('hidden'); return; }
+  const chip = e.target.closest('.chip');
+  if (chip) { sendReact(Number(chip.dataset.mid), chip.dataset.emoji); return; }
+  const rb = e.target.closest('.react-btn');
+  if (rb) { e.stopPropagation(); openPicker(rb, Number(rb.dataset.mid)); }
 });
 $('lightbox').addEventListener('click', () => $('lightbox').classList.add('hidden'));
 

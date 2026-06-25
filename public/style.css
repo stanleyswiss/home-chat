@@ -111,6 +111,45 @@ body {
 .ticks { font-size: 11px; letter-spacing: -2px; margin-left: 3px; color: #cfe9df; }
 .ticks.read { color: #53bdeb; }
 
+/* ---------- Reactions ---------- */
+/* the small "react" affordance on each bubble */
+.react-btn {
+  position: absolute; top: 2px; width: 26px; height: 26px; padding: 0;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--panel-2); color: var(--text); font-size: 13px; line-height: 1;
+  cursor: pointer; opacity: 0; transition: opacity .12s; z-index: 2;
+}
+.row.in  .bubble .react-btn { right: -32px; }
+.row.out .bubble .react-btn { left: -32px; }
+.row:hover .react-btn { opacity: .85; }
+.react-btn:hover { opacity: 1 !important; background: var(--bubble-in); }
+@media (pointer: coarse) { .react-btn { opacity: .55; } }
+
+/* reaction chips under a bubble */
+.reactions { display: flex; flex-wrap: wrap; gap: 4px; }
+.reactions.has { margin-top: 4px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(0,0,0,.28); border: 1px solid transparent; border-radius: 11px;
+  padding: 1px 7px 1px 5px; font-size: 13px; color: var(--text); cursor: pointer; line-height: 1.5;
+}
+.chip:hover { border-color: var(--text-dim); }
+.chip.mine { background: rgba(0,168,132,.28); border-color: var(--accent); }
+.chip .cnt { font-size: 11px; color: var(--text-dim); }
+.chip.mine .cnt { color: #cfe9df; }
+
+/* floating emoji picker */
+.react-picker {
+  position: fixed; z-index: 80; display: flex; gap: 2px; padding: 5px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 22px;
+  box-shadow: 0 10px 32px rgba(0,0,0,.5);
+}
+.rp-emoji {
+  width: 34px; height: 34px; border: none; background: transparent; border-radius: 50%;
+  font-size: 19px; cursor: pointer; transition: transform .1s, background .1s;
+}
+.rp-emoji:hover { background: var(--panel-2); transform: scale(1.25); }
+
 /* notification settings popover */
 .settings-wrap { position: relative; }
 .popover {

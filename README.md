@@ -19,6 +19,7 @@ accounts, no telemetry — your messages never leave your LAN.
 - 🖱️ **Drag & drop** files anywhere, plus a file picker
 - 🖼️ **Inline rendering** — images (click to zoom), PDFs (embedded viewer), other files as download cards
 - ✓✓ **Delivery & read receipts** — sent → delivered → read (blue), persisted across reloads/restarts
+- 😄 **Emoji reactions** — react to any message (👍 ❤️ 😂 😮 😢 🙏); aggregated chips with counts, real-time, persisted
 - 🟢 **Presence** — online / away / offline, with auto-away on idle and a manual "Away" toggle
 - 🔔 **Notification sound** + unread badge in the tab title; optional native desktop notifications (HTTPS only — see Notes)
 - ⧉ **Pop-out window** — open the chat in its own chrome-less window
@@ -51,10 +52,12 @@ logs in. Sessions last a year.
 
 ### Configuration
 
-| Env var | Default   | Description                              |
-|---------|-----------|------------------------------------------|
-| `PORT`  | `8787`    | Port to listen on                        |
-| `HOST`  | `0.0.0.0` | Bind address (`0.0.0.0` = all interfaces)|
+| Env var                | Default      | Description                               |
+|------------------------|--------------|-------------------------------------------|
+| `PORT`                 | `8787`       | Port to listen on                         |
+| `HOST`                 | `0.0.0.0`    | Bind address (`0.0.0.0` = all interfaces) |
+| `HOMECHAT_DATA_DIR`    | `./data`     | Where the SQLite database is stored       |
+| `HOMECHAT_UPLOAD_DIR`  | `./uploads`  | Where uploaded files are stored           |
 
 ```bash
 PORT=9000 npm start
@@ -89,6 +92,7 @@ uploads/         stored attachments (created at runtime, gitignored)
 - `messages` — chat messages (optional body + optional attachment)
 - `attachments` — uploaded file metadata (files live on disk in `uploads/`)
 - `read_state` — per-user delivered/read high-water marks (drives receipts)
+- `reactions` — emoji reactions, one row per (message, user, emoji)
 
 ## Security & scope
 

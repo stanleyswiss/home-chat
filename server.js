@@ -19,6 +19,7 @@ const PORT = Number(process.env.PORT) || 8787;
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_UPLOAD = 25 * 1024 * 1024; // 25 MB
 const COOKIE = 'homechat_session';
+const ALLOWED_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 await mkdir(DATA_DIR, { recursive: true });
 await mkdir(UPLOAD_DIR, { recursive: true });
@@ -97,10 +98,24 @@ function bumpMark(user, kind, upto) {
   return true;
 }
 
+// Aggregate reactions for a message: [{ emoji, users: [usernames] }].
+function reactionsFor(messageId) {
+  const rows = db
+    .prepare('SELECT emoji, username FROM reactions WHERE message_id = ? ORDER BY created_at')
+    .all(messageId);
+  const map = new Map();
+  for (const r of rows) {
+    if (!map.has(r.emoji)) map.set(r.emoji, []);
+    map.get(r.emoji).push(r.username);
+  }
+  return [...map].map(([emoji, users]) => ({ emoji, users }));
+}
+
 function messageWithAttachment(row) {
   const msg = {
     id: row.id, username: row.username, body: row.body,
     created_at: row.created_at, attachment: null,
+    reactions: reactionsFor(row.id),
   };
   if (row.attachment_id) {
     const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(row.attachment_id);
@@ -297,6 +312,23 @@ wss.on('connection', (ws) => {
       bumpMark(ws.user, 'read', row.id);
       broadcast({ type: 'message', message: messageWithAttachment(row) });
       broadcast({ type: 'receipts', marks: allMarks() });
+
+    } else if (data.type === 'react') {
+      const emoji = data.emoji;
+      const messageId = Number(data.messageId);
+      if (!ALLOWED_REACTIONS.includes(emoji) || !messageId) return;
+      const existing = db
+        .prepare('SELECT id FROM reactions WHERE message_id=? AND user_id=? AND emoji=?')
+        .get(messageId, ws.user.id, emoji);
+      if (existing) {
+        db.prepare('DELETE FROM reactions WHERE id=?').run(existing.id);
+      } else {
+        if (!db.prepare('SELECT id FROM messages WHERE id=?').get(messageId)) return;
+        db.prepare(
+          'INSERT INTO reactions (message_id, user_id, username, emoji, created_at) VALUES (?,?,?,?,?)'
+        ).run(messageId, ws.user.id, ws.user.username, emoji, Date.now());
+      }
+      broadcast({ type: 'reactions', messageId, reactions: reactionsFor(messageId) });
 
     } else if (data.type === 'delivered' || data.type === 'read') {
       if (bumpMark(ws.user, data.type, data.upto)) {
