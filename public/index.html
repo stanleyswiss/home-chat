@@ -68,12 +68,15 @@
 
     <div id="staged" class="staged hidden"></div>
 
-    <footer class="composer">
-      <button id="attach-btn" class="icon-btn" title="Attach a file">📎</button>
-      <input id="file-input" type="file" multiple hidden />
-      <textarea id="input" rows="1" placeholder="Type a message — or paste a screenshot (Ctrl/Cmd+V)"></textarea>
-      <button id="send-btn" class="icon-btn send" title="Send">➤</button>
-    </footer>
+    <div class="composer-wrap">
+      <ul id="mention-box" class="mention-box hidden"></ul>
+      <footer class="composer">
+        <button id="attach-btn" class="icon-btn" title="Attach a file">📎</button>
+        <input id="file-input" type="file" multiple hidden />
+        <textarea id="input" rows="1" placeholder="Type a message — @ to mention, or paste a screenshot (Ctrl/Cmd+V)"></textarea>
+        <button id="send-btn" class="icon-btn send" title="Send">➤</button>
+      </footer>
+    </div>
   </div>
 
   <!-- Floating emoji reaction picker -->

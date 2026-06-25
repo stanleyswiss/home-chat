@@ -20,6 +20,7 @@ accounts, no telemetry — your messages never leave your LAN.
 - 🖼️ **Inline rendering** — images (click to zoom), PDFs (embedded viewer), other files as download cards
 - ✓✓ **Delivery & read receipts** — sent → delivered → read (blue), persisted across reloads/restarts
 - 😄 **Emoji reactions** — react to any message (👍 ❤️ 😂 😮 😢 🙏); aggregated chips with counts, real-time, persisted
+- 🏷️ **@mentions** — type `@` for username autocomplete; mentions are highlighted, and messages that tag you stand out
 - 🟢 **Presence** — online / away / offline, with auto-away on idle and a manual "Away" toggle
 - 🔔 **Notification sound** + unread badge in the tab title; optional native desktop notifications (HTTPS only — see Notes)
 - ⧉ **Pop-out window** — open the chat in its own chrome-less window

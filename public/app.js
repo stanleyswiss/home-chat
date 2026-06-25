@@ -11,6 +11,7 @@ let registerMode = false;
 
 let marks = {};             // { username: { delivered, read } }  (receipt high-water marks)
 let presenceUsers = [];     // [ { username, status } ]  (currently connected)
+let knownUsers = [];        // all registered usernames (for @mention autocomplete)
 let lastMsgId = 0;          // highest message id seen
 let deliveredAcked = 0, readAcked = 0;
 const msgIndex = new Map(); // id -> { ticksEl|null }
@@ -409,6 +410,7 @@ async function loadHistory() {
   me = data.me || me;
   marks = data.marks || {};
   presenceUsers = data.presence || [];
+  knownUsers = data.users || [];
   data.messages.forEach((m) => addMessage(m, false));
   if (data.messages.length) lastMsgId = data.messages[data.messages.length - 1].id;
   updateReceipts();
@@ -431,6 +433,27 @@ function escapeHtml(s) {
 }
 function linkify(s) {
   return escapeHtml(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Wrap @username tokens (for known users) in a styled span. Requires whitespace or
+// start before the @, which also keeps it from matching inside URLs (e.g. /@x).
+function highlightMentions(html) {
+  if (!knownUsers.length) return html;
+  const names = knownUsers.map(escapeRegex).sort((a, b) => b.length - a.length).join('|');
+  const re = new RegExp('(^|\\s)@(' + names + ')(?![\\w.-])', 'gi');
+  return html.replace(re, (_m, pre, name) => {
+    const mine = name.toLowerCase() === (me || '').toLowerCase();
+    return `${pre}<span class="mention${mine ? ' mention-me' : ''}">@${name}</span>`;
+  });
+}
+
+function renderText(s) { return highlightMentions(linkify(s)); }
+
+function bodyMentionsMe(body) {
+  if (!body || !me) return false;
+  return new RegExp('(^|\\s)@' + escapeRegex(me) + '(?![\\w.-])', 'i').test(body);
 }
 function fmtSize(n) {
   if (n < 1024) return n + ' B';
@@ -464,14 +487,15 @@ function addMessage(m, animate) {
     lastDay = day;
   }
   const out = m.username === me;
+  const mentionsMe = !out && bodyMentionsMe(m.body);
   const row = document.createElement('div');
   row.className = 'row ' + (out ? 'out' : 'in');
   const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  row.innerHTML = `<div class="bubble">
+  row.innerHTML = `<div class="bubble${mentionsMe ? ' mentions-me' : ''}">
     <button class="react-btn" data-mid="${m.id}" title="Add a reaction" aria-label="Add a reaction">🙂</button>
     ${out ? '' : `<div class="sender">${escapeHtml(m.username)}</div>`}
     ${m.attachment ? attachmentHtml(m.attachment) : ''}
-    ${m.body ? `<div class="text">${linkify(m.body)}</div>` : ''}
+    ${m.body ? `<div class="text">${renderText(m.body)}</div>` : ''}
     <div class="time">${time}${out ? ' <span class="ticks">✓</span>' : ''}</div>
     <div class="reactions" data-mid="${m.id}"></div>
   </div>`;
@@ -492,13 +516,79 @@ function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
 
 const input = $('input');
 
-input.addEventListener('input', () => {
+function autoResize() {
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 140) + 'px';
-});
+}
+
+input.addEventListener('input', () => { autoResize(); updateMention(); });
 
 input.addEventListener('keydown', (e) => {
+  if (mention.open) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); mention.sel = (mention.sel + 1) % mention.items.length; renderMentionBox(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); mention.sel = (mention.sel - 1 + mention.items.length) % mention.items.length; renderMentionBox(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); acceptMention(mention.items[mention.sel]); return; }
+    if (e.key === 'Escape') { e.preventDefault(); closeMention(); return; }
+  }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+input.addEventListener('blur', () => setTimeout(closeMention, 150));
+
+// ---------- @mention autocomplete ----------
+
+const mbox = $('mention-box');
+const mention = { open: false, start: -1, items: [], sel: 0 };
+
+function updateMention() {
+  const caret = input.selectionStart;
+  const before = input.value.slice(0, caret);
+  const m = before.match(/(^|\s)@([\p{L}\p{N}._-]*)$/u);
+  if (!m) return closeMention();
+  const query = m[2].toLowerCase();
+  const others = knownUsers.filter((u) => u.toLowerCase() !== (me || '').toLowerCase());
+  let items = others.filter((u) => u.toLowerCase().startsWith(query));
+  if (!items.length && query) items = others.filter((u) => u.toLowerCase().includes(query));
+  if (!items.length) return closeMention();
+  mention.open = true;
+  mention.start = caret - m[2].length - 1; // position of '@'
+  mention.items = items.slice(0, 6);
+  mention.sel = 0;
+  renderMentionBox();
+}
+
+function renderMentionBox() {
+  mbox.innerHTML = mention.items
+    .map((u, i) => `<li class="${i === mention.sel ? 'sel' : ''}" data-u="${escapeHtml(u)}">@${escapeHtml(u)}</li>`)
+    .join('');
+  mbox.classList.remove('hidden');
+}
+
+function closeMention() {
+  if (!mention.open) return;
+  mention.open = false;
+  mbox.classList.add('hidden');
+  mbox.innerHTML = '';
+}
+
+function acceptMention(username) {
+  if (!username) return closeMention();
+  const caret = input.selectionStart;
+  const before = input.value.slice(0, mention.start);
+  const after = input.value.slice(caret);
+  const insert = '@' + username + ' ';
+  input.value = before + insert + after;
+  const pos = before.length + insert.length;
+  input.setSelectionRange(pos, pos);
+  closeMention();
+  autoResize();
+  input.focus();
+}
+
+// mousedown (not click) so the textarea doesn't blur before we insert.
+mbox.addEventListener('mousedown', (e) => {
+  const li = e.target.closest('li');
+  if (li) { e.preventDefault(); acceptMention(li.dataset.u); }
 });
 
 $('send-btn').addEventListener('click', sendMessage);
@@ -519,6 +609,7 @@ function sendMessage() {
   input.value = '';
   input.style.height = 'auto';
   clearStaged();
+  closeMention();
 }
 
 // ---------- Uploads: paste, drag-drop, file picker ----------

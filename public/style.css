@@ -196,6 +196,13 @@ body {
 .row.out .bubble .sender { display: none; }
 .bubble .text { font-size: 14.5px; line-height: 1.4; white-space: pre-wrap; }
 .bubble .text a { color: #53bdeb; }
+
+/* @mentions */
+.mention { color: #53bdeb; font-weight: 600; }
+.row.out .bubble .mention { color: #afeadb; }
+.mention.mention-me { background: rgba(83,189,235,.22); border-radius: 4px; padding: 0 2px; }
+/* bubble that mentions you gets a highlight bar */
+.bubble.mentions-me { box-shadow: inset 3px 0 0 #53bdeb; }
 .bubble .time { font-size: 10.5px; color: var(--text-dim); text-align: right; margin-top: 2px; }
 .row.out .bubble .time { color: #cfe9df; }
 
@@ -238,6 +245,19 @@ body {
   outline: none; line-height: 1.35;
 }
 #input:focus { border-color: var(--accent); }
+
+/* @mention autocomplete dropdown */
+.composer-wrap { position: relative; }
+.mention-box {
+  position: absolute; bottom: calc(100% + 6px); left: 14px; z-index: 70;
+  min-width: 200px; max-width: 320px; margin: 0; padding: 5px; list-style: none;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.5); max-height: 240px; overflow-y: auto;
+}
+.mention-box li {
+  padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--text);
+}
+.mention-box li.sel, .mention-box li:hover { background: var(--panel-2); }
 
 /* staged attachments preview */
 .staged {

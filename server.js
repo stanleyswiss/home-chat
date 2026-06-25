@@ -67,6 +67,11 @@ function authUser(req) {
 
 // ---- receipts (per-user delivered/read high-water marks) -------------------
 
+// All registered usernames — used by the client for @mention autocomplete.
+function allUsernames() {
+  return db.prepare('SELECT username FROM users ORDER BY username COLLATE NOCASE').all().map((r) => r.username);
+}
+
 // Returns { username: { delivered, read } } for every user that has progress.
 function allMarks() {
   const rows = db.prepare('SELECT username, delivered_upto, read_upto FROM read_state').all();
@@ -208,6 +213,7 @@ const server = http.createServer(async (req, res) => {
         me: me.username,
         marks: allMarks(),
         presence: presenceList(),
+        users: allUsernames(),
       });
     }
 
